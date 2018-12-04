@@ -108,12 +108,15 @@ public class WebSocketBridgeTest {
     AtomicReference<WebSocket> socket = new AtomicReference<>();
 
     vertx.createHttpClient().websocket(8080, "localhost", "/stomp", MultiMap.caseInsensitiveMultiMap().add
-        ("Sec-WebSocket-Protocol", "v10.stomp, v11.stomp, v12.stomp"), ws -> {
-      socket.set(ws);
-      ws.exceptionHandler(error::set)
+        ("Sec-WebSocket-Protocol", "v10.stomp, v11.stomp, v12.stomp"), ar -> {
+      if (ar.succeeded()) {
+        WebSocket ws = ar.result();
+        socket.set(ws);
+        ws.exceptionHandler(error::set)
           .handler(frame::set)
           .write(new Frame(Frame.Command.CONNECT, Headers.create("accept-version", "1.2,1.1,1.0",
-              "heart-beat", "10000,10000"), null).toBuffer());
+            "heart-beat", "10000,10000"), null).toBuffer());
+      }
     });
 
     await().atMost(10, TimeUnit.SECONDS).until(() -> error.get() == null && frame.get() != null);
@@ -137,14 +140,16 @@ public class WebSocketBridgeTest {
     await().atMost(10, TimeUnit.SECONDS).until(() -> client.get() != null);
 
     vertx.createHttpClient().websocket(8080, "localhost", "/stomp", MultiMap.caseInsensitiveMultiMap().add
-        ("Sec-WebSocket-Protocol", "v10.stomp, v11.stomp, v12.stomp"), ws -> {
-      socket.set(ws);
-      ws.exceptionHandler(error::set)
+        ("Sec-WebSocket-Protocol", "v10.stomp, v11.stomp, v12.stomp"), ar -> {
+      if (ar.succeeded()) {
+        WebSocket ws = ar.result();
+        socket.set(ws);
+        ws.exceptionHandler(error::set)
           .handler(buffer -> {
             if (buffer.toString().startsWith("CONNECTED")) {
               ws.write(
-                  new Frame(Frame.Command.SUBSCRIBE, Headers.create("id", "sub-0", "destination", "foo"), null)
-                      .toBuffer());
+                new Frame(Frame.Command.SUBSCRIBE, Headers.create("id", "sub-0", "destination", "foo"), null)
+                  .toBuffer());
               return;
             }
             if (frame.get() == null) {
@@ -152,7 +157,8 @@ public class WebSocketBridgeTest {
             }
           })
           .write(new Frame(Frame.Command.CONNECT, Headers.create("accept-version", "1.2,1.1,1.0",
-              "heart-beat", "10000,10000"), null).toBuffer());
+            "heart-beat", "10000,10000"), null).toBuffer());
+      }
     });
 
     await().atMost(10, TimeUnit.SECONDS).until(() -> server.stompHandler().getDestination("foo") != null);
@@ -183,18 +189,21 @@ public class WebSocketBridgeTest {
 
 
     vertx.createHttpClient().websocket(8080, "localhost", "/stomp", MultiMap.caseInsensitiveMultiMap().add
-        ("Sec-WebSocket-Protocol", "v10.stomp, v11.stomp, v12.stomp"), ws -> {
-      socket.set(ws);
-      ws.exceptionHandler(error::set)
+        ("Sec-WebSocket-Protocol", "v10.stomp, v11.stomp, v12.stomp"), ar -> {
+      if (ar.succeeded()) {
+        WebSocket ws = ar.result();
+        socket.set(ws);
+        ws.exceptionHandler(error::set)
           .handler(buffer -> {
             if (buffer.toString().startsWith("CONNECTED")) {
               ws.write(
-                  new Frame(Frame.Command.SEND, Headers.create("header", "value", "destination", "foo"), Buffer
-                      .buffer("hello")).toBuffer());
+                new Frame(Frame.Command.SEND, Headers.create("header", "value", "destination", "foo"), Buffer
+                  .buffer("hello")).toBuffer());
             }
           })
           .write(new Frame(Frame.Command.CONNECT, Headers.create("accept-version", "1.2,1.1,1.0",
-              "heart-beat", "10000,10000"), null).toBuffer());
+            "heart-beat", "10000,10000"), null).toBuffer());
+      }
     });
 
     await().atMost(10, TimeUnit.SECONDS).until(() -> error.get() == null && frame.get() != null);
@@ -231,7 +240,9 @@ public class WebSocketBridgeTest {
     }));
 
     vertx.createHttpClient().websocket(8080, "localhost", "/stomp", MultiMap.caseInsensitiveMultiMap().add
-      ("Sec-WebSocket-Protocol", "v10.stomp, v11.stomp, v12.stomp"), ws -> {
+      ("Sec-WebSocket-Protocol", "v10.stomp, v11.stomp, v12.stomp"), ar -> {
+      if (ar.succeeded()) {
+        WebSocket ws = ar.result();
         ws.exceptionHandler(error::set)
           .handler(buffer -> {
             if (buffer.toString().startsWith("CONNECTED")) {
@@ -247,7 +258,8 @@ public class WebSocketBridgeTest {
           })
           .write(new Frame(Frame.Command.CONNECT, Headers.create("accept-version", "1.2,1.1,1.0",
             "heart-beat", "10000,10000"), null).toBuffer());
-      socket.set(ws);
+        socket.set(ws);
+      }
     });
 
     // Create content that is slightly bigger than the size of a single web socket frame
@@ -284,16 +296,19 @@ public class WebSocketBridgeTest {
     await().atMost(10, TimeUnit.SECONDS).until(() -> client.get() != null);
 
     vertx.createHttpClient().websocket(8080, "localhost", "/stomp", MultiMap.caseInsensitiveMultiMap().add
-            ("Sec-WebSocket-Protocol", "v10.stomp, v11.stomp, v12.stomp"), ws -> {
-      socket.set(ws);
-      ws.exceptionHandler(error::set)
-              .handler(buffer -> {
-                vertx.setTimer(1000, id -> {
-                  flag.set(true);
-                });
-              })
-              .write(new Frame(Frame.Command.CONNECT, Headers.create("accept-version", "1.2,1.1,1.0",
-                      "heart-beat", "100,0"), null).toBuffer());
+            ("Sec-WebSocket-Protocol", "v10.stomp, v11.stomp, v12.stomp"), ar -> {
+      if (ar.succeeded()) {
+        WebSocket ws = ar.result();
+        socket.set(ws);
+        ws.exceptionHandler(error::set)
+          .handler(buffer -> {
+            vertx.setTimer(1000, id -> {
+              flag.set(true);
+            });
+          })
+          .write(new Frame(Frame.Command.CONNECT, Headers.create("accept-version", "1.2,1.1,1.0",
+            "heart-beat", "100,0"), null).toBuffer());
+      }
     });
 
     await().atMost(10, TimeUnit.SECONDS).until(() -> error.get() == null && flag.get() != null);
@@ -324,14 +339,16 @@ public class WebSocketBridgeTest {
     AtomicReference<Buffer> frame = new AtomicReference<>();
 
     vertx.createHttpClient().websocket(8080, "localhost", "/something", MultiMap.caseInsensitiveMultiMap().add
-        ("Sec-WebSocket-Protocol", "v10.stomp, v11.stomp, v12.stomp"), ws -> {
-      receiver.set(ws);
-      ws.exceptionHandler(error::set)
+        ("Sec-WebSocket-Protocol", "v10.stomp, v11.stomp, v12.stomp"), ar -> {
+      if (ar.succeeded()) {
+        WebSocket ws = ar.result();
+        receiver.set(ws);
+        ws.exceptionHandler(error::set)
           .handler(buffer -> {
             if (buffer.toString().startsWith("CONNECTED")) {
               ws.write(
-                  new Frame(Frame.Command.SUBSCRIBE, Headers.create("id", "sub-0", "destination", "foo"), null)
-                      .toBuffer());
+                new Frame(Frame.Command.SUBSCRIBE, Headers.create("id", "sub-0", "destination", "foo"), null)
+                  .toBuffer());
               return;
             }
             if (frame.get() == null) {
@@ -339,24 +356,28 @@ public class WebSocketBridgeTest {
             }
           })
           .write(new Frame(Frame.Command.CONNECT, Headers.create("accept-version", "1.2,1.1,1.0",
-              "heart-beat", "10000,10000"), null).toBuffer());
+            "heart-beat", "10000,10000"), null).toBuffer());
+      }
     });
 
     await().atMost(10, TimeUnit.SECONDS).until(() -> server.stompHandler().getDestination("foo") != null);
 
     vertx.createHttpClient().websocket(8080, "localhost", "/something", MultiMap.caseInsensitiveMultiMap().add
-        ("Sec-WebSocket-Protocol", "v10.stomp, v11.stomp, v12.stomp"), ws -> {
-      sender.set(ws);
-      ws.exceptionHandler(error::set)
+        ("Sec-WebSocket-Protocol", "v10.stomp, v11.stomp, v12.stomp"), ar -> {
+      if (ar.succeeded()) {
+        WebSocket ws = ar.result();
+        sender.set(ws);
+        ws.exceptionHandler(error::set)
           .handler(buffer -> {
             if (buffer.toString().startsWith("CONNECTED")) {
               ws.write(
-                  new Frame(Frame.Command.SEND, Headers.create("header", "value", "destination", "foo"), Buffer
-                      .buffer("hello")).toBuffer());
+                new Frame(Frame.Command.SEND, Headers.create("header", "value", "destination", "foo"), Buffer
+                  .buffer("hello")).toBuffer());
             }
           })
           .write(new Frame(Frame.Command.CONNECT, Headers.create("accept-version", "1.2,1.1,1.0",
-              "heart-beat", "10000,10000"), null).toBuffer());
+            "heart-beat", "10000,10000"), null).toBuffer());
+      }
     });
 
     await().atMost(10, TimeUnit.SECONDS).until(() -> error.get() == null && frame.get() != null);
